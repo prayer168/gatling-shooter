@@ -295,7 +295,7 @@ function beltTan(t){
 // ══════════════════════════════════════════════════════════
 const S={
   mx:0,my:0,
-  aimX:0,aimY:0,       // smoothed aim position
+  aimX:0,aimY:0,
   firing:false,
   barrelAngle:0,barrelSpeed:0,
   flash:0,
@@ -305,6 +305,7 @@ const S={
   heat:0,
   totalRotations:0,
   beltOffset:0,
+  warmedUp:false,      // true after first full-speed spin-up
 };
 
 // ══════════════════════════════════════════════════════════
@@ -787,12 +788,15 @@ let lastTime=0;
 function update(dt){
   // ── Barrel spin
   if(S.firing){
-    S.barrelSpeed=Math.min(1,S.barrelSpeed+dt*1.6);
+    // If already warmed up, spin up instantly to full speed
+    const spinRate = S.warmedUp ? 12 : 1.6;
+    S.barrelSpeed=Math.min(1,S.barrelSpeed+dt*spinRate);
+    if(S.barrelSpeed>=1) S.warmedUp=true;
     S.firingTime+=dt;
   } else {
-    S.barrelSpeed=Math.max(0,S.barrelSpeed-dt*2.8);
+    // Slow decel — but don't reset warmedUp
+    S.barrelSpeed=Math.max(0,S.barrelSpeed-dt*1.8);
     S.firingTime=0;
-    if(S.barrelSpeed===0) S.warCryTimer=Math.min(S.warCryTimer,1.2);
   }
 
   // Smooth aim follow
