@@ -920,7 +920,7 @@ function loop(ts){
 //  INPUT
 // ══════════════════════════════════════════════════════════
 canvas.addEventListener('mousemove',  e=>{S.mx=e.clientX;S.my=e.clientY;});
-canvas.addEventListener('mousedown',  e=>{if(e.button===0){S.firing=true;audioCtx&&audioCtx.resume();}});
+canvas.addEventListener('mousedown',  e=>{if(e.button===0){S.firing=true;S.barrelSpeed=1;audioCtx&&audioCtx.resume();}});
 canvas.addEventListener('mouseup',    e=>{if(e.button===0)S.firing=false;});
 canvas.addEventListener('mouseleave', ()=>{S.firing=false;});
 window.addEventListener('blur',       ()=>{S.firing=false;});
