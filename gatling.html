@@ -36,6 +36,7 @@ canvas { display:block; cursor:none; }
   <button id="btn-room"   class="active" onclick="switchScene('room')">🏭 廢棄工廠</button>
   <button id="btn-castle"             onclick="switchScene('castle')">🏰 城堡</button>
   <button id="btn-forest"             onclick="switchScene('forest')">🌲 樹林</button>
+  <button id="btn-night"              onclick="switchScene('night')">🎪 夜市</button>
 </div>
 <div id="overlay">
   🔥 加特林射擊場 🔥
@@ -153,6 +154,7 @@ const SCENE_CFG = {
   room:   { cols:16, rows:10, debrisCols:['#8B5A2B','#7a4a25','#9a6535','#6B4020','#b08040','#503020'] },
   castle: { cols:10, rows:7,  debrisCols:['#888','#999','#aaa','#777','#bbb','#666','#ccc'] },
   forest: { cols:13, rows:8,  debrisCols:['#8B4513','#DEB887','#D2691E','#A0522D','#c8a060','#e8c080'] },
+  night:  { cols:8,  rows:3,  debrisCols:['#ffaacc','#aaddff','#ffffaa','#ffccaa','#ccffcc','#ffffff','#ffddff'] },
 };
 let currentScene = 'room';
 
@@ -492,6 +494,288 @@ function drawWallWood(){
     for(let col=0;col<mW;col++){const nx=x+col*WALL.bW+WALL.bW*.5;ctx.fillStyle='#2a2a2a';ctx.beginPath();ctx.arc(nx,ry+railH*.5,3.5,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(x,ry+railH,w,4);
   });
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAW: NIGHT MARKET BACKGROUND
+// ══════════════════════════════════════════════════════════
+// Pre-generate stable neon colours for signs
+const NEON_COLS=['#ff2266','#ff9900','#ffee00','#00eeff','#cc44ff','#44ff88','#ff66aa','#00ccff'];
+const NEON_SEED=new Float32Array(200);
+for(let i=0;i<NEON_SEED.length;i++) NEON_SEED[i]=Math.random();
+
+function drawBgNight(){
+  // ── Deep night sky
+  const sky=ctx.createLinearGradient(0,0,0,WALL.y+WALL.h);
+  sky.addColorStop(0,'#050208');sky.addColorStop(.6,'#0a0415');sky.addColorStop(1,'#12081a');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+
+  // ── Stars
+  ctx.fillStyle='rgba(255,255,255,.7)';
+  for(let i=0;i<60;i++){
+    const sx=NEON_SEED[i*2%200]*W, sy=NEON_SEED[(i*2+1)%200]*WALL.y*.8;
+    const sr=0.5+NEON_SEED[(i*3)%200]*1.2;
+    ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
+  }
+
+  // ── Far-background building silhouettes
+  ctx.fillStyle='#0c0510';
+  for(let i=0;i<9;i++){
+    const bx=i*(W/8)-30, bw=60+NEON_SEED[(i*7)%200]*80;
+    const bh=WALL.y*(.4+NEON_SEED[(i*11)%200]*.55);
+    ctx.fillRect(bx, WALL.y-bh, bw, bh+5);
+    // Windows
+    for(let wy=0;wy<6;wy++) for(let wx=0;wx<3;wx++){
+      if(NEON_SEED[(i*13+wy*3+wx)%200]>.45){
+        ctx.fillStyle=`rgba(255,${0|200+NEON_SEED[(i+wy+wx)%200]*55},100,.55)`;
+        ctx.fillRect(bx+8+wx*18, WALL.y-bh+10+wy*20, 10, 12);
+      }
+    }
+    ctx.fillStyle='#0c0510';
+  }
+
+  // ── Hanging lanterns above the doll rack
+  const t=Date.now()*.001;
+  for(let i=0;i<7;i++){
+    const lx=WALL.x+WALL.w*(i+.5)/7;
+    const ly=WALL.y-32+Math.sin(t*1.2+i*.9)*5;
+    const lcol=NEON_COLS[i%NEON_COLS.length];
+    // Cord
+    ctx.fillStyle='rgba(120,80,40,.6)';ctx.fillRect(lx-1,WALL.y-58,2,ly-(WALL.y-58)+8);
+    // Glow
+    const lg=ctx.createRadialGradient(lx,ly,0,lx,ly,38);
+    lg.addColorStop(0,lcol.replace('#','rgba(').replace(/([0-9a-f]{2})/gi,(_,h)=>parseInt(h,16)+',').slice(0,-1)+'.25)');
+    lg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=lg;ctx.beginPath();ctx.ellipse(lx,ly,38,38,0,0,Math.PI*2);ctx.fill();
+    // Body
+    const bg=ctx.createRadialGradient(lx-5,ly-5,2,lx,ly,16);
+    bg.addColorStop(0,'#fff');bg.addColorStop(.3,lcol);bg.addColorStop(1,'rgba(0,0,0,.5)');
+    ctx.fillStyle=bg;ctx.beginPath();ctx.ellipse(lx,ly,14,18,0,0,Math.PI*2);ctx.fill();
+    // Tassel
+    ctx.fillStyle=lcol;ctx.fillRect(lx-2,ly+16,4,10);
+  }
+
+  // ── Neon sign strips (horizontal bands above wall)
+  const signTexts=['★ 射擊遊戲 ★','全中大獎','每局50元','夜市娃娃'];
+  for(let si=0;si<3;si++){
+    const sx=WALL.x+WALL.w*(.12+si*.28);
+    const sy=WALL.y-80-si*18;
+    const scol=NEON_COLS[(si*3)%NEON_COLS.length];
+    const flicker=.75+Math.sin(t*8.3+si*2.1)*.12+Math.sin(t*15.7+si)*.08;
+    ctx.shadowBlur=18;ctx.shadowColor=scol;
+    ctx.fillStyle=`rgba(${parseInt(scol.slice(1,3),16)},${parseInt(scol.slice(3,5),16)},${parseInt(scol.slice(5,7),16)},${flicker})`;
+    ctx.font='bold 18px sans-serif';ctx.textAlign='center';
+    ctx.fillText(signTexts[si%signTexts.length],sx,sy);
+  }
+  ctx.shadowBlur=0;ctx.textAlign='left';
+
+  // ── Side stall canopies
+  const canopyH=55;
+  [[0,WALL.x,'#8B0000','#cc2200'],[WALL.x+WALL.w,W,'#004488','#0066cc']].forEach(([x0,x1,c1,c2])=>{
+    const cg=ctx.createLinearGradient(x0,WALL.y,x1,WALL.y);
+    cg.addColorStop(0,c1);cg.addColorStop(1,c2);
+    ctx.fillStyle=cg;
+    ctx.beginPath();ctx.moveTo(x0,WALL.y-canopyH);ctx.lineTo(x1,WALL.y-canopyH+15);ctx.lineTo(x1,WALL.y+10);ctx.lineTo(x0,WALL.y+10);ctx.closePath();ctx.fill();
+    // Stripe pattern
+    ctx.fillStyle='rgba(255,255,255,.12)';
+    for(let s=0;s<8;s++){const sx2=x0+(x1-x0)*s/8;ctx.fillRect(sx2,WALL.y-canopyH,((x1-x0)/8)*.4,canopyH+10);}
+  });
+
+  // ── Wooden floor / ground
+  const fg=ctx.createLinearGradient(0,WALL.y+WALL.h,0,H);
+  fg.addColorStop(0,'#1a1008');fg.addColorStop(1,'#0a0805');
+  ctx.fillStyle=fg;ctx.fillRect(0,WALL.y+WALL.h,W,H-WALL.y-WALL.h);
+  // Reflective floor spots from neon
+  for(let i=0;i<5;i++){
+    const rx=WALL.x+WALL.w*(.1+i*.2), ry=WALL.y+WALL.h+30;
+    const ncol=NEON_COLS[i%NEON_COLS.length];
+    const rg=ctx.createRadialGradient(rx,ry,0,rx,ry,80);
+    rg.addColorStop(0,`rgba(${parseInt(ncol.slice(1,3),16)},${parseInt(ncol.slice(3,5),16)},${parseInt(ncol.slice(5,7),16)},.08)`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(rx,ry,80,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAW: DOLL RACK WALL (night market)
+// ══════════════════════════════════════════════════════════
+
+// Doll type definitions: id, body colour, ear/detail colour, face colour, accent
+const DOLL_TYPES=[
+  {id:'bear',  body:'#c8824a',ear:'#b06030',face:'#e8c090',nose:'#883020',eyeC:'#1a0a00'},
+  {id:'rabbit',body:'#f0c8d8',ear:'#e090a8',face:'#ffe8f0',nose:'#cc5588',eyeC:'#220022'},
+  {id:'pig',   body:'#f0a0b0',ear:'#e07888',face:'#ffd0d8',nose:'#cc4466',eyeC:'#180010'},
+  {id:'cat',   body:'#888898',ear:'#666678',face:'#dde0e8',nose:'#cc6688',eyeC:'#100018'},
+  {id:'duck',  body:'#f0d830',ear:'#e0b820',face:'#fff8c0',nose:'#e06010',eyeC:'#080400'},
+  {id:'frog',  body:'#50c050',ear:'#38a038',face:'#c0f0c0',nose:'#206020',eyeC:'#001000'},
+  {id:'panda', body:'#e8e8e8',ear:'#111111',face:'#f8f8f8',nose:'#111111',eyeC:'#000000'},
+  {id:'star',  body:'#ffd700',ear:'#ffaa00',face:'#fffacc',nose:'#cc8800',eyeC:'#220800'},
+];
+
+function drawDoll(cx,cy,sz,typeIdx,dmg,tilt){
+  const d=DOLL_TYPES[typeIdx%DOLL_TYPES.length];
+  ctx.save();
+  ctx.translate(cx,cy);
+  // Tilt when damaged
+  const angle=tilt*(dmg/5)*1.1;
+  ctx.rotate(angle);
+
+  const s=sz*.9;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(0,s*.65,s*.45,s*.12,0,0,Math.PI*2);ctx.fill();
+
+  if(d.id==='duck'){
+    // Body (oval)
+    ctx.fillStyle=d.body;ctx.beginPath();ctx.ellipse(0,s*.1,s*.38,s*.42,0,0,Math.PI*2);ctx.fill();
+    // Wing
+    ctx.fillStyle=d.ear;ctx.beginPath();ctx.ellipse(s*.28,s*.15,s*.18,s*.12,-0.4,0,Math.PI*2);ctx.fill();
+    // Head
+    ctx.fillStyle=d.body;ctx.beginPath();ctx.arc(0,-s*.22,s*.26,0,Math.PI*2);ctx.fill();
+    // Beak
+    ctx.fillStyle=d.nose;ctx.beginPath();ctx.ellipse(s*.26,-s*.22,s*.14,s*.08,0,0,Math.PI*2);ctx.fill();
+    // Eyes
+    ctx.fillStyle=d.eyeC;ctx.beginPath();ctx.arc(s*.1,-s*.28,s*.055,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s*.12,-s*.30,s*.022,0,Math.PI*2);ctx.fill();
+  } else if(d.id==='star'){
+    // Star body
+    ctx.fillStyle=d.body;
+    ctx.beginPath();
+    for(let p=0;p<5;p++){
+      const a=-Math.PI/2+p*Math.PI*2/5;
+      const a2=a+Math.PI/5;
+      const ox=Math.cos(a)*s*.45, oy=Math.sin(a)*s*.45;
+      const ix=Math.cos(a2)*s*.2, iy=Math.sin(a2)*s*.2;
+      if(p===0) ctx.moveTo(ox,oy); else ctx.lineTo(ox,oy);
+      ctx.lineTo(ix,iy);
+    }
+    ctx.closePath();ctx.fill();
+    // Face
+    ctx.fillStyle=d.face;ctx.beginPath();ctx.arc(0,0,s*.22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=d.eyeC;
+    ctx.beginPath();ctx.arc(-s*.08,-s*.04,s*.055,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc( s*.08,-s*.04,s*.055,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=d.nose;ctx.beginPath();ctx.arc(0,s*.06,s*.04,0,Math.PI*2);ctx.fill();
+  } else {
+    // Generic plush body
+    ctx.fillStyle=d.body;ctx.beginPath();ctx.ellipse(0,s*.12,s*.34,s*.42,0,0,Math.PI*2);ctx.fill();
+    // Belly patch
+    ctx.fillStyle=d.face;ctx.beginPath();ctx.ellipse(0,s*.18,s*.2,s*.26,0,0,Math.PI*2);ctx.fill();
+    // Head
+    ctx.fillStyle=d.body;ctx.beginPath();ctx.arc(0,-s*.28,s*.3,0,Math.PI*2);ctx.fill();
+    // Ears
+    if(d.id==='rabbit'){
+      ctx.fillStyle=d.body;ctx.beginPath();ctx.ellipse(-s*.13,-s*.64,s*.1,s*.22,-.2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse( s*.13,-s*.64,s*.1,s*.22, .2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=d.ear;ctx.beginPath();ctx.ellipse(-s*.13,-s*.64,s*.055,s*.14,-.2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse( s*.13,-s*.64,s*.055,s*.14, .2,0,Math.PI*2);ctx.fill();
+    } else if(d.id==='bear'||d.id==='pig'||d.id==='panda'){
+      ctx.fillStyle=d.body;
+      ctx.beginPath();ctx.arc(-s*.22,-s*.5,s*.13,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc( s*.22,-s*.5,s*.13,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=d.ear;
+      ctx.beginPath();ctx.arc(-s*.22,-s*.5,s*.07,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc( s*.22,-s*.5,s*.07,0,Math.PI*2);ctx.fill();
+    } else if(d.id==='cat'){
+      // Triangle ears
+      ctx.fillStyle=d.body;
+      ctx.beginPath();ctx.moveTo(-s*.28,-s*.5);ctx.lineTo(-s*.14,-s*.34);ctx.lineTo(-s*.08,-s*.56);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo( s*.28,-s*.5);ctx.lineTo( s*.14,-s*.34);ctx.lineTo( s*.08,-s*.56);ctx.closePath();ctx.fill();
+    } else if(d.id==='frog'){
+      ctx.fillStyle=d.body;
+      ctx.beginPath();ctx.arc(-s*.26,-s*.48,s*.15,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc( s*.26,-s*.48,s*.15,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=d.face;
+      ctx.beginPath();ctx.arc(-s*.26,-s*.48,s*.09,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc( s*.26,-s*.48,s*.09,0,Math.PI*2);ctx.fill();
+    }
+    // Face patch
+    ctx.fillStyle=d.face;ctx.beginPath();ctx.ellipse(0,-s*.28,s*.2,s*.2,0,0,Math.PI*2);ctx.fill();
+    // Eyes
+    ctx.fillStyle=d.eyeC;
+    ctx.beginPath();ctx.arc(-s*.1,-s*.3,s*.055,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc( s*.1,-s*.3,s*.055,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(-s*.085,-s*.315,s*.022,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc( s*.115,-s*.315,s*.022,0,Math.PI*2);ctx.fill();
+    // Nose
+    ctx.fillStyle=d.nose;ctx.beginPath();ctx.arc(0,-s*.22,s*.05,0,Math.PI*2);ctx.fill();
+    if(d.id==='pig'){
+      ctx.fillStyle=d.nose;ctx.beginPath();ctx.ellipse(0,-s*.19,s*.1,s*.07,0,0,Math.PI*2);ctx.fill();
+    }
+    // Arms
+    ctx.fillStyle=d.body;
+    ctx.beginPath();ctx.ellipse(-s*.42,s*.08,s*.1,s*.22,-0.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse( s*.42,s*.08,s*.1,s*.22, 0.5,0,Math.PI*2);ctx.fill();
+    // Legs
+    ctx.beginPath();ctx.ellipse(-s*.18,s*.52,s*.12,s*.16,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse( s*.18,s*.52,s*.12,s*.16,0,0,Math.PI*2);ctx.fill();
+  }
+
+  // Damage effects: burn marks
+  if(dmg>=2){
+    ctx.globalAlpha=Math.min(.75,(dmg-1)*.25);
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    ctx.beginPath();ctx.arc((Math.sin(typeIdx*7.3)*s*.2)|0,(Math.cos(typeIdx*5.1)*s*.2)|0,s*.25,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  if(dmg>=4){
+    ctx.globalAlpha=.55;
+    ctx.fillStyle='#1a0800';
+    ctx.beginPath();ctx.arc(0,0,s*.38,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+}
+
+function drawWallDolls(){
+  const {x,y,w,h,bW,bH,mW,mH,dmg}=WALL;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+
+  // ── Rack frame: dark wooden shelves
+  const shelfCount=mH+1;
+  for(let s=0;s<=shelfCount;s++){
+    const sy=y+s*(h/shelfCount);
+    const sg=ctx.createLinearGradient(x,sy,x,sy+12);
+    sg.addColorStop(0,'#7a4820');sg.addColorStop(.5,'#9a6030');sg.addColorStop(1,'#5a3010');
+    ctx.fillStyle=sg;ctx.fillRect(x,sy,w,14);
+    // wood grain
+    ctx.fillStyle='rgba(0,0,0,.08)';
+    for(let gi=0;gi<30;gi++) ctx.fillRect(x+gi*w/30,sy,w/30*.4,14);
+  }
+  // Vertical posts
+  const postCount=mW+1;
+  for(let p=0;p<postCount;p++){
+    const px=x+p*(w/mW);
+    const pg=ctx.createLinearGradient(px,y,px+10,y);
+    pg.addColorStop(0,'#5a3010');pg.addColorStop(.5,'#8a5030');pg.addColorStop(1,'#4a2008');
+    ctx.fillStyle=pg;ctx.fillRect(px-5,y-10,10,h+20);
+  }
+  // Price tags
+  ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  for(let col=0;col<mW;col++){
+    const tagX=x+col*bW+bW*.5;
+    const tagY=y+h/shelfCount-2;
+    ctx.fillStyle='#ffe';ctx.fillRect(tagX-14,tagY-12,28,14);
+    ctx.fillStyle='#c00';ctx.fillText('$50',tagX,tagY);
+  }
+  ctx.textAlign='left';
+
+  // ── Draw dolls in each cell
+  for(let row=0;row<mH;row++) for(let col=0;col<mW;col++){
+    const d=dmg[row*mW+col];
+    if(d>=5.5) continue; // completely blown off shelf
+    const cx2=x+col*bW+bW*.5;
+    const cy2=y+row*(h/shelfCount)+(h/shelfCount)*.5+7;
+    const sz=Math.min(bW,h/shelfCount)*.68;
+    const typeIdx=(col*3+row*7+col*row)%DOLL_TYPES.length;
+    // Stable per-cell tilt direction
+    const tiltDir=BSEED[(col*17+row*31)%BSEED.length]>.5?1:-1;
+    drawDoll(cx2,cy2,sz,typeIdx,d,tiltDir);
+  }
+
   ctx.restore();
 }
 
@@ -868,9 +1152,11 @@ function draw(){
   ctx.save();ctx.translate(S.shakeX,S.shakeY);
   if(currentScene==='castle') drawBgCastle();
   else if(currentScene==='forest') drawBgForest();
+  else if(currentScene==='night') drawBgNight();
   else drawBgRoom();
   if(currentScene==='castle') drawWallStone();
   else if(currentScene==='forest') drawWallWood();
+  else if(currentScene==='night') drawWallDolls();
   else drawWallBrick();
   drawDamageOverlay();
   drawParticles();
