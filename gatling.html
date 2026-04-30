@@ -830,7 +830,7 @@ function update(dt){
 
   // ── Fire bullets — INFINITE while firing, no ammo limit
   if(S.firing&&S.barrelSpeed>.08){
-    const interval=.018+(1-S.barrelSpeed)*.075;
+    const interval=.018;
     S.fireTimer-=dt;
     if(S.fireTimer<=0){
       S.fireTimer=interval;
