@@ -295,6 +295,7 @@ function beltTan(t){
 // ══════════════════════════════════════════════════════════
 const S={
   mx:0,my:0,
+  aimX:0,aimY:0,       // smoothed aim position
   firing:false,
   barrelAngle:0,barrelSpeed:0,
   flash:0,
@@ -302,8 +303,8 @@ const S={
   fireTimer:0,shotCount:0,
   firingTime:0,warCryTimer:1.5,
   heat:0,
-  totalRotations:0,  // tracks accumulated rotations
-  beltOffset:0,      // 0..1 loop, drives ammo belt animation
+  totalRotations:0,
+  beltOffset:0,
 };
 
 // ══════════════════════════════════════════════════════════
@@ -794,6 +795,11 @@ function update(dt){
     if(S.barrelSpeed===0) S.warCryTimer=Math.min(S.warCryTimer,1.2);
   }
 
+  // Smooth aim follow
+  const smooth = 1 - Math.pow(0.012, dt);
+  S.aimX += (S.mx - S.aimX) * smooth;
+  S.aimY += (S.my - S.aimY) * smooth;
+
   // Track total rotations for heat trigger
   const rotDelta=S.barrelSpeed*dt*14/(Math.PI*2);
   S.barrelAngle+=S.barrelSpeed*dt*14;
@@ -814,7 +820,8 @@ function update(dt){
 
   // ── Gun heat smoke (rises from barrel area when hot)
   if(S.heat>0.45){
-    const gx=W*.5+(S.mx-W*.5)*.055, gy=H*.78+(S.my-H*.5)*.032;
+    const gx=W*.5+(S.aimX-W*.5)*0.30;
+    const gy=H*.82+(S.aimY-H*.5)*0.04;
     if(Math.random()<dt*S.heat*8) spawnGunSmoke(gx,gy);
   }
 
@@ -838,7 +845,9 @@ function update(dt){
       S.flash=.9+Math.random()*.1;
       S.shakeMag=Math.min(18,S.shakeMag+1.8);
       S.shotCount++;
-      const gx=W*.5, gy=H*.78;
+      // gun world position matches draw() calculation
+      const gx=W*.5+(S.aimX-W*.5)*0.30;
+      const gy=H*.82+(S.aimY-H*.5)*0.04;
       if(S.shotCount%2===0) spawnShell(gx,gy);
       if(S.shotCount%3===0) spawnMuzzleSmoke(gx,gy-140);
       if(S.shotCount%4===0) playGunShot();
@@ -865,9 +874,22 @@ function draw(){
   else drawWallBrick();
   drawDamageOverlay();
   drawParticles();
-  const gx=W*.5+(S.mx-W*.5)*.055, gy=H*.78+(S.my-H*.5)*.032;
-  drawGatling(gx,gy);
-  drawHands(gx,gy);
+  // Gun base position: follows mouse X broadly, stays near bottom
+  const gx = W*.5 + (S.aimX - W*.5) * 0.30;
+  const gy = H*.82 + (S.aimY - H*.5) * 0.04;
+
+  // Aim angle: rotate gun so barrels point toward crosshair
+  const dx = S.aimX - gx;
+  const dy = S.aimY - gy;
+  const aimAngle = Math.atan2(dx, -dy); // tilt from vertical
+  const clampedAngle = Math.max(-Math.PI*0.38, Math.min(Math.PI*0.38, aimAngle));
+
+  ctx.save();
+  ctx.translate(gx, gy);
+  ctx.rotate(clampedAngle);
+  drawGatling(0, 0);
+  drawHands(0, 0);
+  ctx.restore();
   ctx.restore();
 
   // Screen overlays
@@ -911,7 +933,9 @@ overlay.addEventListener('click',()=>{
   initAudio();
   overlay.style.display='none';
   resize();
-  S.mx=W/2;S.my=H*.36;S.warCryTimer=1.3;
+  S.mx=W/2;S.my=H*.36;
+  S.aimX=S.mx;S.aimY=S.my;
+  S.warCryTimer=1.3;
   requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
 });
 </script>
