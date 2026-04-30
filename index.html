@@ -786,15 +786,11 @@ function drawCrosshair(x,y){
 // ══════════════════════════════════════════════════════════
 let lastTime=0;
 function update(dt){
-  // ── Barrel spin
+  // ── Barrel spin — always instant full speed on trigger pull
   if(S.firing){
-    // If already warmed up, spin up instantly to full speed
-    const spinRate = S.warmedUp ? 12 : 1.6;
-    S.barrelSpeed=Math.min(1,S.barrelSpeed+dt*spinRate);
-    if(S.barrelSpeed>=1) S.warmedUp=true;
+    S.barrelSpeed=Math.min(1,S.barrelSpeed+dt*12);
     S.firingTime+=dt;
   } else {
-    // Slow decel — but don't reset warmedUp
     S.barrelSpeed=Math.max(0,S.barrelSpeed-dt*1.8);
     S.firingTime=0;
   }
