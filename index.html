@@ -194,13 +194,7 @@ function wallHit(sx,sy,spread){
     const c=col+dc, r=row+dr;
     if(c>=0&&c<WALL.mW&&r>=0&&r<WALL.mH) WALL.dmg[r*WALL.mW+c]=Math.min(6,WALL.dmg[r*WALL.mW+c]+v);
   });
-  if(WALL.holes.length>3&&Math.random()<.32){
-    const p=WALL.holes[WALL.holes.length-2-Math.floor(Math.random()*4)];
-    if(p) WALL.cracks.push({x1:tx,y1:ty,x2:p.x,y2:p.y,w:.7+Math.random()*2.2,
-      cmx:(tx+p.x)*.5+(Math.random()-.5)*16, cmy:(ty+p.y)*.5+(Math.random()-.5)*16});
-  }
   if(WALL.holes.length>650) WALL.holes.splice(0,65);
-  if(WALL.cracks.length>280) WALL.cracks.splice(0,28);
   return true;
 }
 
@@ -425,8 +419,8 @@ function drawWallBrick(){
     ctx.fillStyle=`rgb(${0|148+vr-d*18},${0|82+vr*.4-d*12},${0|58+vr*.2-d*8})`;
     ctx.fillRect(bx+1,by+1,bW-3,bH-3);
     ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(bx+bW-2,by,2,bH);ctx.fillRect(bx,by+bH-2,bW-2,2);
-    if(d>=1){ctx.strokeStyle='rgba(0,0,0,.52)';ctx.lineWidth=1;ctx.beginPath();const cr=bx+4+(seed%(bW-8));ctx.moveTo(cr,by+2);ctx.lineTo(cr-3+(seed&7),by+bH-2);ctx.stroke();}
-    if(d>=2){ctx.strokeStyle='rgba(0,0,0,.62)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx+3,by+3);ctx.lineTo(bx+bW-3,by+bH-3);ctx.moveTo(bx+bW*.6,by+2);ctx.lineTo(bx+2,by+bH*.7);ctx.stroke();}
+    if(d>=1){ctx.fillStyle='rgba(0,0,0,.32)';ctx.fillRect(bx+4+(seed%(bW-8)),by+2,1,bH-4);}
+    if(d>=2){ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(bx+3,by+3,bW-6,2);ctx.fillRect(bx+bW*.5|0,by+3,2,bH-6);}
     if(d>=3){ctx.fillStyle='rgba(0,0,0,.55)';for(let ci=0;ci<6;ci++){const s2=BSEED[((idx+ci*17)*13)%BSEED.length],s3=BSEED[((idx+ci*23)*7)%BSEED.length];ctx.fillRect(bx+2+s2*(bW-8),by+2+s3*(bH-8),2+(ci&3),2+(ci&2));}}
     if(d>=4){ctx.fillStyle='rgba(0,0,0,.7)';ctx.beginPath();ctx.arc(bx+bW*.45,by+bH*.45,bW*.3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#030101';ctx.beginPath();ctx.arc(bx+bW*.45,by+bH*.45,bW*.18,0,Math.PI*2);ctx.fill();}
   }
@@ -448,7 +442,7 @@ function drawWallStone(){
     ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(bx+bW-2,by,2,bH);ctx.fillRect(bx,by+bH-2,bW-2,2);
     ctx.fillStyle=`rgba(0,0,0,${.08+d*.04})`;
     for(let n=0;n<4;n++){const ns=BSEED[((idx+n*17)*13)%BSEED.length],ns2=BSEED[((idx+n*23)*7)%BSEED.length];ctx.fillRect(bx+3+ns*(bW-6),by+3+ns2*(bH-6),2,2);}
-    if(d>=1.5){ctx.strokeStyle='rgba(0,0,0,.48)';ctx.lineWidth=1;ctx.beginPath();const s2=BSEED[(seed*11)%BSEED.length];ctx.moveTo(bx+s2*bW,by+2);ctx.lineTo(bx+s2*bW+5,by+bH-2);ctx.stroke();}
+    if(d>=1.5){ctx.fillStyle='rgba(0,0,0,.38)';const s2=BSEED[(seed*11)%BSEED.length];ctx.fillRect(bx+s2*(bW-4)|0,by+2,2,bH-4);}
     if(d>=3){ctx.fillStyle='rgba(0,0,0,.62)';const s3=BSEED[(seed*13)%BSEED.length];ctx.beginPath();ctx.arc(bx+bW*.44+s3*10,by+bH*.44,bW*.26,0,Math.PI*2);ctx.fill();ctx.fillStyle='#040404';ctx.beginPath();ctx.arc(bx+bW*.44+s3*10,by+bH*.44,bW*.14,0,Math.PI*2);ctx.fill();}
   }
   ctx.restore();
@@ -482,7 +476,7 @@ function drawWallWood(){
     for(let row=0;row<mH;row++){
       const d=dmg[row*mW+col];if(d<1.5)continue;
       const by=y+row*bH;
-      if(d>=2){ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1;const s2=col*23+row*37;for(let sp=0;sp<3;sp++){const sx=bx+3+BSEED[(s2+sp*7)%BSEED.length]*(bW-6);ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(sx+(sp-1)*4,by+bH);ctx.stroke();}}
+      if(d>=2){ctx.fillStyle='rgba(0,0,0,.42)';const s2=col*23+row*37;for(let sp=0;sp<3;sp++){const sx=bx+3+BSEED[(s2+sp*7)%BSEED.length]*(bW-6);ctx.fillRect(sx|0,by,2,bH);}}
       if(d>=4){ctx.fillStyle='#080402';ctx.beginPath();ctx.arc(bx+bW*.5,by+bH*.5,bW*.38,0,Math.PI*2);ctx.fill();}
     }
   }
@@ -504,19 +498,21 @@ function drawWallWood(){
 // ══════════════════════════════════════════════════════════
 function drawDamageOverlay(){
   ctx.save();ctx.beginPath();ctx.rect(WALL.x,WALL.y,WALL.w,WALL.h);ctx.clip();
-  ctx.lineCap='round';
-  for(const c of WALL.cracks){
-    ctx.strokeStyle='rgba(0,0,0,.75)';ctx.lineWidth=c.w;
-    ctx.beginPath();ctx.moveTo(c.x1,c.y1);ctx.quadraticCurveTo(c.cmx,c.cmy,c.x2,c.y2);ctx.stroke();
-  }
-  ctx.lineCap='butt';
+  // Bullet holes — pure fill, no stroke
   for(const h of WALL.holes){
     const {x,y,r}=h;
-    const sp=ctx.createRadialGradient(x,y,r*.5,x,y,r*2.8);
-    sp.addColorStop(0,'rgba(0,0,0,.75)');sp.addColorStop(.5,'rgba(20,10,6,.5)');sp.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=sp;ctx.beginPath();ctx.arc(x,y,r*2.8,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#020101';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(80,45,28,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();
+    const sp=ctx.createRadialGradient(x,y,r*.4,x,y,r*3.2);
+    sp.addColorStop(0,'rgba(0,0,0,.88)');
+    sp.addColorStop(.35,'rgba(15,8,4,.65)');
+    sp.addColorStop(.7,'rgba(8,4,2,.28)');
+    sp.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sp;ctx.beginPath();ctx.arc(x,y,r*3.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#010000';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    // Scorched inner rim — filled annulus, no stroke
+    const rim=ctx.createRadialGradient(x,y,r*.8,x,y,r*1.5);
+    rim.addColorStop(0,'rgba(60,30,10,.0)');
+    rim.addColorStop(1,'rgba(40,20,5,.32)');
+    ctx.fillStyle=rim;ctx.beginPath();ctx.arc(x,y,r*1.5,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
