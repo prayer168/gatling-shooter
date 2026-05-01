@@ -70,7 +70,15 @@ window.addEventListener('resize', resize);
 let audioCtx;
 
 function initAudio() {
+  if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS Safari starts AudioContext in 'suspended' — must resume inside gesture
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function ensureAudio() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function playGunShot() {
@@ -1208,7 +1216,7 @@ function loop(ts){
 //  INPUT — mouse + touch
 // ══════════════════════════════════════════════════════════
 canvas.addEventListener('mousemove',  e=>{S.mx=e.clientX;S.my=e.clientY;});
-canvas.addEventListener('mousedown',  e=>{if(e.button===0){S.firing=true;S.barrelSpeed=1;audioCtx&&audioCtx.resume();}});
+canvas.addEventListener('mousedown',  e=>{if(e.button===0){S.firing=true;S.barrelSpeed=1;ensureAudio();}});
 canvas.addEventListener('mouseup',    e=>{if(e.button===0)S.firing=false;});
 canvas.addEventListener('mouseleave', ()=>{S.firing=false;});
 window.addEventListener('blur',       ()=>{S.firing=false;});
@@ -1223,7 +1231,8 @@ canvas.addEventListener('touchstart', e=>{
   const p=getTouchPos(e);
   S.mx=p.x; S.my=p.y;
   S.firing=true; S.barrelSpeed=1;
-  audioCtx&&audioCtx.resume();
+  initAudio();    // create context inside gesture (iOS requirement)
+  ensureAudio();  // resume if suspended
 },{passive:false});
 canvas.addEventListener('touchmove', e=>{
   e.preventDefault();
